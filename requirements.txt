@@ -1,0 +1,241 @@
+# Hyperelastic Thick-Walled Cylinder Solvers
+
+This repository contains Python implementations of semi-analytical solutions
+for an incompressible, thick-walled cylinder subjected to uniform
+external pressure. The scripts were translated from MATLAB and are intended for
+ researchers who want a readable, modifiable Python version for
+evluation of the Mooney–Rivlin, Marlow, and Ogden thick-wall approximation models.
+
+The current formulation assumes axisymmetric deformation, plane strain
+(`lambda_z = 1`), incompressibility, a traction-free inner wall, and external
+pressure applied at the outer wall.
+
+## What The Code Solves
+
+For each applied external pressure `Pext`, the scripts solve for the deformed
+inner radius `a` using a scalar nonlinear equation. The deformed outer radius
+`b` is then computed from incompressibility:
+
+```text
+b^2 = B^2 - A^2 + a^2
+```
+
+The scripts then compute through-thickness stress profiles in the current
+configuration:
+
+- radial Cauchy stress, `sigma_r`
+- hoop/circumferential Cauchy stress, `sigma_theta`
+- normalized radial coordinate, `rho = (r - a)/(b - a)`
+
+The boundary conditions are:
+
+```text
+sigma_r(a) = 0
+sigma_r(b) = -Pext
+```
+
+Compression is reported as negative stress.
+
+## Included Models
+
+### Mooney-Rivlin
+
+`MR_hyperelastic_thickwall.py`
+
+Solves the closed-form incompressible Mooney-Rivlin thick-wall problem using
+material parameters:
+
+- `C1`
+- `C2`
+- `mu = 2*(C1 + C2)`
+
+This script is useful when the material can be approximated with a
+Mooney-Rivlin response or when a simple analytical benchmark is needed.
+
+### Marlow-Type W(I1)
+
+`MARLOW_hyperelastic_thickwall.py`
+
+Builds a Marlow-type material response from uniaxial nominal stress-stretch
+data. The script constructs:
+
+```text
+W1(I1) = dW/dI1
+```
+
+from uniaxial data using:
+
+```text
+I1(lambda) = lambda^2 + 2/lambda
+Pnom(lambda) = 2*W1(I1)*(lambda - lambda^-2)
+```
+
+This script is useful when the material model should be driven directly by
+experimental uniaxial data rather than by a fitted closed-form strain-energy
+function.
+
+### Model Comparison
+
+`COMPARISON_hyperelastic_thickwall.py`
+
+Compares three incompressible hyperelastic models for the same thick-wall
+external-pressure problem:
+
+- Mooney-Rivlin
+- Ogden N=3, using the Abaqus `mu_i`, `alpha_i` form
+- Marlow-type `W(I1)` built from uniaxial nominal stress-stretch data
+
+The comparison script computes the global response `a/A` versus `Pext` for all
+three models and compares stress profiles at a selected pressure.
+
+## Repository Files
+
+```text
+MR_hyperelastic_thickwall.py
+MARLOW_hyperelastic_thickwall.py
+COMPARISON_hyperelastic_thickwall.py
+requirements.txt
+README.md
+.gitignore
+```
+
+## Installation
+
+Use Python 3.10 or newer.
+
+Create and activate a virtual environment if desired:
+
+```bash
+python -m venv .venv
+```
+
+On Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+On macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+The required packages are:
+
+- `numpy`
+- `scipy`
+- `matplotlib`
+
+## How To Run
+
+Run any script from the repository folder.
+
+Mooney-Rivlin solver:
+
+```bash
+python MR_hyperelastic_thickwall.py
+```
+
+Marlow solver:
+
+```bash
+python MARLOW_hyperelastic_thickwall.py
+```
+
+Model comparison:
+
+```bash
+python COMPARISON_hyperelastic_thickwall.py
+```
+
+Each script saves output files in the same folder as the script.
+
+## Generated Outputs
+
+Depending on which script is run, the code creates CSV summary files and PNG
+figures such as:
+
+```text
+MR_hyperelastic_thickwall_summary.csv
+MR_stress_profiles.png
+MR_global_response.png
+
+MARLOW_hyperelastic_thickwall_summary.csv
+MARLOW_W1_construction.png
+MARLOW_stress_profiles.png
+MARLOW_global_response.png
+
+COMPARISON_hyperelastic_thickwall_summary.csv
+COMPARISON_marlow_input.png
+COMPARISON_global_response.png
+COMPARISON_stress_profiles_selected_pressure.png
+```
+
+The summary CSV files include quantities such as:
+
+- `Pext_Pa`
+- `a_m`
+- `b_m`
+- `a_over_A`
+- `b_over_B`
+
+The comparison CSV stores the solved inner radius for each model across the
+pressure sweep.
+
+## Editing Inputs
+
+User-editable parameters are located in the `main()` function of each script.
+
+Common parameters:
+
+- `A`: undeformed inner radius, meters
+- `B`: undeformed outer radius, meters
+- `Pext_list`: applied external pressures, Pa
+- `Nr`: number of radial points used for stress profiles
+- `Nq`: number of quadrature points used for numerical pressure integration
+- `tol_f`: function tolerance for the scalar root solve
+- `tol_a`: radius tolerance for the scalar root solve
+- `maxIter`: maximum bisection iterations
+
+Mooney-Rivlin parameters:
+
+- `C1`: Mooney-Rivlin parameter, Pa
+- `C2`: Mooney-Rivlin parameter, Pa
+
+Ogden parameters:
+
+- `mu_OG`: Ogden `mu_i` parameters, Pa
+- `alp_OG`: Ogden `alpha_i` parameters
+
+Marlow data:
+
+- `lambda_uni`: uniaxial stretch data
+- `Pnom_uni`: uniaxial nominal stress data, Pa
+
+Replace the placeholder Marlow data in `MARLOW_hyperelastic_thickwall.py` with
+your own experimental uniaxial data before using the results for research
+interpretation.
+
+## Units
+
+Use SI units consistently:
+
+- length: meters
+- pressure/stress: pascals
+- material parameters: pascals
+
+The plots display pressure in kPa where convenient, but calculations are
+performed in Pa.
+
+## Citation / Attribution
+
+If you use or adapt this code, cite the associated research work or repository
+where this implementation is hosted. Update this section with the appropriate
+paper, thesis, dataset, or GitHub citation before public release.
